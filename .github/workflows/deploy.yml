@@ -55,5 +55,9 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            echo "Stopping the application..."
             pkill -f 'java -jar' || true
-            nohup java -jar /home/${{ secrets.SERVER_USER }}/app/*.jar > app.log 2>&1 &
+            echo "Starting the application..."
+            nohup java -jar /home/${{ secrets.SERVER_USER }}/app/build/libs/testing-1.0-SNAPSHOT.jar > /home/${{ secrets.SERVER_USER }}/app/app.log 2>&1 &
+            tail -f /home/${{ secrets.SERVER_USER }}/app/app.log
+            echo "Application started."
