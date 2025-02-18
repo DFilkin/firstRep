@@ -1,4 +1,4 @@
-name: Build and Deploy Java App
+name: Build and Deploy Java App with Docker
 
 on:
   push:
@@ -23,57 +23,34 @@ jobs:
           chmod +x gradlew
           ./gradlew build
 
-      - name: Upload JAR Artifact
+      - name: Build Docker Image
+        run: |
+          docker build -t testing-app .
+
+      - name: Upload Docker Image as Artifact (optional)
         uses: actions/upload-artifact@v4
         with:
-          name: app-jar
-          path: build/libs/*.jar
+          name: testing-app-image
+          path: /path/to/your/image
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download JAR Artifact
+      - name: Download Docker Image Artifact (optional)
         uses: actions/download-artifact@v4
         with:
-          name: app-jar
-          path: build/libs
+          name: testing-app-image
 
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v2
-
-      - name: Build Docker Image
-        run: |
-          echo "
-          FROM openjdk:17-jdk-slim
-          COPY build/libs/testing-1.0-SNAPSHOT.jar /app/testing-1.0-SNAPSHOT.jar
-          CMD java -jar /app/testing-1.0-SNAPSHOT.jar
-          " > Dockerfile
-
-          docker build -t testing-app .
-
-      - name: Run Docker container
-        run: |
-          docker run -d -p 8080:8080 --name testing-container testing-app
-
-          echo "Waiting for 15 seconds for the application to start..."
-          sleep 15
-
-          docker ps -a
-
-          curl --retry 5 --retry-delay 5 --max-time 30 http://localhost:8080 || { 
-            echo "Application failed to start. Fetching logs..."; 
-            docker logs testing-container; 
-            exit 1; 
-          }
-
-      - name: Wait for 1 minute
-        run: |
-          echo "Waiting for 1 minute before stopping the container..."
-          sleep 60
-
-      - name: Stop Docker container
-        run: |
-          docker stop testing-container
-          docker rm testing-container
-          echo "Container stopped and removed."
+      - name: Deploy Docker Container to Server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: |
+            docker run -d -p 8080:8080 --name testing-container testing-app
+            echo "App started!"
+            sleep 60  # Ждем 1 минуту
+            docker stop testing-container
+            echo "App stopped!"
