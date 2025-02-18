@@ -25,7 +25,7 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          sudo docker build -t testing-app .
+          docker build -t testing-app .
 
   deploy:
     needs: build
@@ -40,15 +40,25 @@ jobs:
           script: |
             #!/bin/bash
             APP_DIR=~/app
-
             cd $APP_DIR
-
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker stop testing-container || true
-            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker rm testing-container || true
-
+            
+            # Убедимся, что образ был построен
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker build -t testing-app .
+            
+            # Убедимся, что контейнер не существует перед его запуском
+            if sudo docker ps -a | grep -q "testing-container"; then
+              echo "Container exists, stopping it..."
+              echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker stop testing-container
+              echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker rm testing-container
+            fi
+            
+            # Запускаем новый контейнер
             echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker run -d -p 8080:8080 --name testing-container testing-app
-
+            echo "App started!"
+            
+            # Даем некоторое время на выполнение
             sleep 60
-
+            
+            # Останавливаем контейнер
             echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker stop testing-container
             echo "App stopped!"
