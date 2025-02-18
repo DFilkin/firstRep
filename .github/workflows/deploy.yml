@@ -59,12 +59,20 @@ jobs:
             pid=$(ps aux | grep 'java -jar' | grep -v grep | awk '{print $2}')
             if [ -n "$pid" ]; then
               kill -9 $pid
-              echo "Process killed."
+              echo "Java process killed."
             else
               echo "No Java process found."
             fi
             sleep 5
+
             echo "Starting the application..."
             nohup java -jar /home/${{ secrets.SERVER_USER }}/app/build/libs/testing-1.0-SNAPSHOT.jar > /home/${{ secrets.SERVER_USER }}/app/app.log 2>&1 &
-            tail -f /home/${{ secrets.SERVER_USER }}/app/app.log
-            echo "Application started."
+
+            sleep 5
+            if ps aux | grep -q '[j]ava -jar'; then
+              echo "Application started successfully."
+            else
+              echo "Application failed to start. Check app.log for more details."
+              tail -n 50 /home/${{ secrets.SERVER_USER }}/app/app.log
+              exit 1
+            fi
