@@ -24,7 +24,7 @@ jobs:
           ./gradlew build
 
       - name: Upload JAR Artifact
-        uses: actions/upload-artifact@v2
+        uses: github/upload-artifact@v1
         with:
           name: app-jar
           path: build/libs/*.jar
@@ -34,7 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download JAR Artifact
-        uses: actions/download-artifact@v3
+        uses: github/download-artifact@v1
         with:
           name: app-jar
           path: build/libs
