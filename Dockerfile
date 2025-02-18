@@ -1,9 +1,7 @@
 FROM openjdk:17-jdk-slim
 
-WORKDIR /app
+WORKDIR /root/app
 
-COPY build/libs/*.jar /app/app.jar
+COPY build/libs/testing-app.jar /root/app/testing-app.jar
 
-EXPOSE 8080
-
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+CMD ["java", "-jar", "/root/app/testing-app.jar"]
