@@ -25,7 +25,7 @@ jobs:
 
       - name: Build Docker Image
         run: |
-          docker build -t testing-app .
+          sudo docker build -t testing-app .
 
   deploy:
     needs: build
@@ -40,11 +40,15 @@ jobs:
           script: |
             #!/bin/bash
             APP_DIR=~/app
+
             cd $APP_DIR
-            docker build -t testing-app .
-            
+
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker stop testing-container || true
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker rm testing-container || true
+
             echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker run -d -p 8080:8080 --name testing-container testing-app
+
             sleep 60
-            
+
             echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker stop testing-container
             echo "App stopped!"
