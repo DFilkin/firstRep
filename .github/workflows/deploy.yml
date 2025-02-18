@@ -39,40 +39,33 @@ jobs:
           name: app-jar
           path: build/libs
 
-      - name: Deploy to Server via SSH
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          source: "build/libs/*.jar"
-          target: "/home/${{ secrets.SERVER_USER }}/app"
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
 
-      - name: Restart Application
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            echo "Stopping the application..."
-            pid=$(ps aux | grep 'java -jar' | grep -v grep | awk '{print $2}')
-            if [ -n "$pid" ]; then
-              kill -9 $pid
-              echo "Java process killed."
-            else
-              echo "No Java process found."
-            fi
-            sleep 5
+      - name: Build Docker Image
+        run: |
+          echo "
+          FROM openjdk:17-jdk-slim
+          COPY build/libs/testing-1.0-SNAPSHOT.jar /app/testing-1.0-SNAPSHOT.jar
+          CMD java -jar /app/testing-1.0-SNAPSHOT.jar
+          " > Dockerfile
 
-            echo "Starting the application..."
-            nohup java -jar /home/${{ secrets.SERVER_USER }}/app/build/libs/testing-1.0-SNAPSHOT.jar > /home/${{ secrets.SERVER_USER }}/app/app.log 2>&1 &
+          docker build -t testing-app .
 
-            sleep 5
-            if ps aux | grep -q '[j]ava -jar'; then
-              echo "Application started successfully."
-            else
-              echo "Application failed to start. Check app.log for more details."
-              tail -n 50 /home/${{ secrets.SERVER_USER }}/app/app.log
-              exit 1
-            fi
+      - name: Run Docker container
+        run: |
+          docker run -d -p 8080:8080 --name testing-container testing-app
+
+          sleep 5
+          curl --retry 5 --retry-delay 5 --max-time 30 http://localhost:8080 || { echo "Application failed to start"; exit 1; }
+
+      - name: Wait for 1 minute
+        run: |
+          echo "Waiting for 1 minute before stopping the container..."
+          sleep 60
+
+      - name: Stop Docker container
+        run: |
+          docker stop testing-container
+          docker rm testing-container
+          echo "Container stopped and removed."
