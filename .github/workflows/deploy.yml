@@ -38,6 +38,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
+            echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker build -t testing-app .
             echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker run -d -p 8080:8080 --name testing-container testing-app
             echo "App started!"
             sleep 60
