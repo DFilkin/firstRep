@@ -29,9 +29,9 @@ jobs:
 
       - name: Сборка и пуш Docker-образа
         run: |
-          docker build -t DFilkin/testing-app .
-          docker tag DFilkin/testing-app DFilkin/testing-app:latest
-          docker push DFilkin/testing-app:latest
+          docker build -t dfilkin/testing-app .
+          docker tag dfilkin/testing-app dfilkin/testing-app:latest
+          docker push dfilkin/testing-app:latest
 
   deploy:
     needs: build
@@ -47,5 +47,5 @@ jobs:
           script: |
             sudo docker stop testing-app || true
             sudo docker rm testing-app || true
-            sudo docker pull DFilkin/testing-app:latest
-            sudo docker run -d --name testing-app -p 8080:8080 --restart always DFilkin/testing-app:latest
+            sudo docker pull dfilkin/testing-app:latest
+            sudo docker run -d --name testing-app -p 8080:8080 --restart always dfilkin/testing-app:latest
